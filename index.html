@@ -1039,8 +1039,8 @@ const SCENARIOS = {
         viFull: 'Cô nói "Rất vui được làm quen!". Hãy đáp: <strong>"我也很高兴认识你!"</strong> (Tôi cũng rất vui được làm quen!) — chữ <strong>也</strong> = cũng.',
         type: 'text',
         placeholder: 'Gõ: 我也很高兴认识你',
-        accepted: ['我也很高兴认识你', '也很高兴认识你', '我也是', '也是'],
-        keywords: ['也', '高兴', '认识'],
+        accepted: ['我也很高兴认识你', '也很高兴认识你', '我也是', '也是', '认识你我也很高兴'],
+        keywords: ['也', '高兴', '认识', '你'],
       },
       {
         bot: '老师再见！',
@@ -1049,7 +1049,7 @@ const SCENARIOS = {
         viFull: 'Cô nói "Tạm biệt!". Đáp: <strong>"再见!"</strong> hoặc lịch sự hơn <strong>"老师再见!"</strong> hoặc <strong>"王老师再见!"</strong>',
         type: 'text',
         placeholder: 'Gõ: 再见 hoặc 老师再见',
-        accepted: ['再见', '老师再见', '王老师再见'],
+        accepted: ['再见', '老师再见', '王老师再见', '再见老师', '再见王老师'],
       },
     ],
   },
@@ -1095,8 +1095,8 @@ const SCENARIOS = {
         viFull: 'Đáp: <strong>"我也很高兴认识你!"</strong> (Tôi cũng rất vui được làm quen!)',
         type: 'text',
         placeholder: 'Gõ: 我也很高兴认识你',
-        accepted: ['我也很高兴认识你', '也很高兴认识你', '我也是'],
-        keywords: ['也', '高兴', '认识'],
+        accepted: ['我也很高兴认识你', '也很高兴认识你', '我也是', '认识你我也很高兴'],
+        keywords: ['也', '高兴', '认识', '你'],
       },
       {
         bot: '请问，你忙吗？',
@@ -1114,7 +1114,7 @@ const SCENARIOS = {
         viFull: 'Đáp: <strong>"再见!"</strong> hoặc <strong>"同学再见!"</strong>',
         type: 'text',
         placeholder: 'Gõ: 再见 hoặc 同学再见',
-        accepted: ['再见', '同学再见'],
+        accepted: ['再见', '同学再见', '再见同学'],
       },
     ],
   },
@@ -1169,7 +1169,7 @@ const SCENARIOS = {
         viFull: 'Đáp 2 ý: <strong>"我也很高兴认识你, 不客气!"</strong> (Tôi cũng vui được làm quen, không có gì!) — hoặc đơn giản <strong>"不客气!"</strong>',
         type: 'text',
         placeholder: 'Gõ: 不客气 hoặc 我也很高兴认识你, 不客气',
-        accepted: ['不客气', '我也很高兴认识你', '也很高兴', '不客气我也很高兴认识你'],
+        accepted: ['不客气', '我也很高兴认识你', '也很高兴认识你', '不客气我也很高兴认识你', '我也很高兴认识你不客气', '认识你我也很高兴'],
         keywords: ['不客气'],
       },
       {
@@ -1243,7 +1243,7 @@ const SCENARIOS = {
         viFull: 'Đáp: <strong>"不客气，再见!"</strong> (Không có gì, tạm biệt!) hoặc đơn giản <strong>"再见!"</strong>',
         type: 'text',
         placeholder: 'Gõ: 不客气, 再见',
-        accepted: ['不客气', '再见', '不客气再见', '不客气，再见', '没事'],
+        accepted: ['不客气', '再见', '不客气再见', '再见不客气', '没事再见', '再见没事', '没事'],
       },
     ],
   },
@@ -1280,21 +1280,19 @@ function isAccepted(userAnswer, step) {
   const norm = normalize(userAnswer);
   if (!norm) return false;
 
-  // Lenient mode: chấp nhận bất kỳ input >= 2 ký tự (cho các bước gõ tên)
+  // Lenient mode (chỉ dành cho bước gõ TÊN tự do)
   if (step.lenient && norm.length >= 1) {
     const matched = step.accepted.some(p => norm.includes(normalize(p)));
     return matched || norm.length >= 2;
   }
 
-  // Cách 1: So khớp với accepted patterns (đúng nguyên văn hoặc gần đúng)
-  const matchedPattern = step.accepted.some(p => {
-    const np = normalize(p);
-    return norm.includes(np) || np.includes(norm);
-  });
-  if (matchedPattern) return true;
+  // STRICT EXACT MATCH (sau khi bỏ dấu câu/khoảng trắng)
+  // Câu trả lời PHẢI khớp chính xác với 1 trong accepted patterns
+  const matchedExact = step.accepted.some(p => normalize(p) === norm);
+  if (matchedExact) return true;
 
-  // Cách 2 (MỚI): So khớp theo KEYWORDS — chấp nhận đảo trật tự câu
-  // Nếu câu trả lời chứa TẤT CẢ keywords cốt lõi → đúng
+  // KEYWORDS MATCH (cho phép đảo trật tự, chỉ áp dụng khi step có khai báo keywords)
+  // Câu trả lời phải chứa TẤT CẢ keywords cốt lõi
   if (step.keywords && step.keywords.length > 0) {
     const allFound = step.keywords.every(kw => norm.includes(normalize(kw)));
     if (allFound) return true;
